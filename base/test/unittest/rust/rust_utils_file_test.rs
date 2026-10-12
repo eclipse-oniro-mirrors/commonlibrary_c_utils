@@ -447,7 +447,8 @@ fn test_save_buffer_to_file_002() {
     let ret = file_ex::ffi::RustLoadStringFromFile(&filename, &mut load_result);
     let _err = remove_test_file(&filename);
     assert!(ret);
-    assert_eq!(load_result, String::from_utf8_lossy(&new_content));
+    let new_content_u8: Vec<u8> = new_content.iter().map(|&c| c as u8).collect();
+    assert_eq!(load_result, String::from_utf8_lossy(&new_content_u8));
 }
 
 #[test]
@@ -465,7 +466,8 @@ fn test_save_buffer_to_file_003() {
     ret = file_ex::ffi::RustLoadStringFromFile(&filename, &mut load_result);
     let _err = remove_test_file(&filename);
     assert!(ret);
-    assert_eq!(&load_result, &(content + &String::from_utf8_lossy(&new_content)));
+    let new_content_u8_2: Vec<u8> = new_content.iter().map(|&c| c as u8).collect();
+    assert_eq!(&load_result, &(content + &String::from_utf8_lossy(&new_content_u8_2)));
 }
 
 #[test]
