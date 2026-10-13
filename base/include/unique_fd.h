@@ -26,6 +26,10 @@
 #define UNIQUE_FD_H
 
 #include <unistd.h>
+#include <cstdint>
+#ifdef OHOS_PLATFORM
+#include <stdio.h>
+#endif
 
 namespace OHOS {
 
@@ -96,6 +100,11 @@ class UniqueFdAddDeletor final {
 
     friend bool operator< <Deleter>(const int& lhs, const UniqueFdAddDeletor<Deleter>& rhs);
 
+#ifdef OHOS_PLATFORM
+private:
+    static constexpr uint64_t UNIQUE_FD_FDSAN_TAG = 0xD003D00;
+#endif
+
 public:
     /**
      * @brief Creates a `UniqueFdAddDeletor` object to manage an FD.
@@ -105,6 +114,11 @@ public:
     explicit UniqueFdAddDeletor(const int& value)
         : fd_(value)
     {
+#ifdef OHOS_PLATFORM
+        if (fd_ >= 0) {
+            fdsan_exchange_owner_tag(fd_, 0, UNIQUE_FD_FDSAN_TAG);
+        }
+#endif
     }
 
     /**
@@ -134,6 +148,11 @@ public:
     {
         int tmp = fd_;
         fd_ = -1;
+#ifdef OHOS_PLATFORM
+        if (tmp >= 0) {
+            fdsan_exchange_owner_tag(tmp, UNIQUE_FD_FDSAN_TAG, 0);
+        }
+#endif
         return tmp;
     }
 
@@ -168,10 +187,9 @@ public:
      *
      * @param rhs Indicates the source `UniqueFdAddDeletor` object.
      */
-    UniqueFdAddDeletor(UniqueFdAddDeletor&& rhs)
+    UniqueFdAddDeletor(UniqueFdAddDeletor&& rhs) : fd_(rhs.fd_)
     {
-        int rhsfd = rhs.Release();
-        fd_ = rhsfd;
+        rhs.fd_ = -1;
     }
 
     /**
@@ -186,8 +204,11 @@ public:
      */
     UniqueFdAddDeletor& operator=(UniqueFdAddDeletor&& rhs)
     {
-        int rhsfd = rhs.Release();
-        Reset(rhsfd);
+        if (this != &rhs) {
+            Reset(-1);
+            fd_ = rhs.fd_;
+            rhs.fd_ = -1; // the fdsan tag stays on the fd: no unprotected window during the transfer
+        }
         return *this;
     }
 
@@ -281,9 +302,17 @@ private:
     void Reset(int newValue)
     {
         if (fd_ >= 0) {
+#ifdef OHOS_PLATFORM
+            fdsan_exchange_owner_tag(fd_, UNIQUE_FD_FDSAN_TAG, 0);
+#endif
             Deleter::Close(fd_);
         }
         fd_ = newValue;
+#ifdef OHOS_PLATFORM
+        if (fd_ >= 0) {
+            fdsan_exchange_owner_tag(fd_, 0, UNIQUE_FD_FDSAN_TAG);
+        }
+#endif
     }
 
     // disallow copy ctor and copy assign
