@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace Utils {
 #ifdef UTILS_FDSAN
-static constexpr uint64_t MAPPED_FILE_FDSAN_TAG = 0xD003D00;
+static constexpr uint64_t MAPPED_FILE_FDSAN_TAG = 0x000D003D00000003;
 #endif
 
 static bool CloseFd(int& fd)

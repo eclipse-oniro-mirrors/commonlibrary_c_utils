@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace Utils {
 #ifdef UTILS_FDSAN
-static constexpr uint64_t IO_EVENT_EPOLL_FDSAN_TAG = 0xD003D00;
+static constexpr uint64_t IO_EVENT_EPOLL_FDSAN_TAG = 0x000D003D00000002;
 #endif
 
 IOEventEpoll::IOEventEpoll()

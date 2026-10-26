@@ -27,7 +27,7 @@
 namespace OHOS {
 namespace Utils {
 #ifdef UTILS_FDSAN
-static constexpr uint64_t TIMER_EVENT_HANDLER_FDSAN_TAG = 0xD003D00;
+static constexpr uint64_t TIMER_EVENT_HANDLER_FDSAN_TAG = 0x000D003D00000004;
 #endif
 
 // Unit of measure conversion
