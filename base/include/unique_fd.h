@@ -102,7 +102,7 @@ class UniqueFdAddDeletor final {
 
 #ifdef OHOS_PLATFORM
 private:
-    static constexpr uint64_t UNIQUE_FD_FDSAN_TAG = 0xD003D00;
+    static constexpr uint64_t UNIQUE_FD_FDSAN_TAG = 0x000D003D00000001;
 #endif
 
 public:
