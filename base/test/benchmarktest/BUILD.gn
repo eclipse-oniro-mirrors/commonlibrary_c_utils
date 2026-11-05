@@ -11,7 +11,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (!is_host_product) {
+use_linux = "${current_os}_${current_cpu}" == "linux_arm64"
+
+if (!use_linux && !is_host_product) {
   group("benchmarktest") {
     testonly = true
     deps = []
