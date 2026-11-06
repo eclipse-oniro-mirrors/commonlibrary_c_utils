@@ -12,8 +12,10 @@
 # limitations under the License.
 import("//build/test.gni")
 
+use_linux = "${current_os}_${current_cpu}" == "linux_arm64"
+
 ##############################fuzztest##########################################
-if (!is_host_product) {
+if (!use_linux && !is_host_product) {
   ohos_fuzztest("AshmemFuzzTest") {
     module_out_path = "c_utils/c_utils"
     fuzz_config_file = "."

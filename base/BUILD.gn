@@ -12,6 +12,8 @@
 # limitations under the License.
 import("//build/ohos.gni")
 
+use_linux = "${current_os}_${current_cpu}" == "linux_arm64"
+
 ###############################################################################
 declare_args() {
   c_utils_feature_coverage = false
@@ -109,7 +111,7 @@ sources_utils = [
   "src/rwlock.cpp",
 ]
 
-if (!is_host_product) {
+if (!use_linux && !is_host_product) {
   sources_utils += [ "src/ashmem.cpp" ]
 }
 
@@ -178,7 +180,7 @@ ohos_static_library("utilsbase") {
     configs = [ ":utils_coverage_config" ]
     configs += [ ":utils_fdsan_config" ]
     public_configs = [ ":utils_config" ]
-    if (current_os != "android" && current_os != "ios" && !is_host_product) {
+    if (!use_linux && current_os != "android" && current_os != "ios" && !is_host_product) {
       defines = [ "CONFIG_HILOG" ]
     }
     if (c_utils_debug_log_enabled) {
@@ -196,7 +198,7 @@ ohos_static_library("utilsbase_rtti") {
   sources = sources_utils
   configs = [ ":utils_fdsan_config" ]
   public_configs = [ ":utils_config" ]
-  if (current_os != "android" && current_os != "ios" && !is_host_product) {
+  if (!use_linux && current_os != "android" && current_os != "ios" && !is_host_product) {
     defines = [ "CONFIG_HILOG" ]
   }
 
@@ -233,7 +235,7 @@ ohos_shared_library("utils") {
     configs = [ ":utils_coverage_config" ]
     configs += [ ":utils_fdsan_config" ]
 
-    if (!is_arkui_x && !is_host_product) {
+    if (!use_linux && !is_arkui_x && !is_host_product) {
       if (c_utils_feature_intsan) {
         sanitize = {
           integer_overflow = true
@@ -255,7 +257,7 @@ ohos_shared_library("utils") {
       configs += [ ":parcel_object_check" ]
     }
     public_configs = [ ":utils_config" ]
-    if (current_os != "android" && current_os != "ios" && !is_host_product) {
+    if (!use_linux && current_os != "android" && current_os != "ios" && !is_host_product) {
       defines = [ "CONFIG_HILOG" ]
     }
     if (c_utils_debug_log_enabled) {

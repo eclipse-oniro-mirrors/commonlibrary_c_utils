@@ -12,6 +12,8 @@
 # limitations under the License.
 import("//build/test.gni")
 
+use_linux = "${current_os}_${current_cpu}" == "linux_arm64"
+
 module_output_path = "c_utils/c_utils/base"
 
 ###############################################################################
@@ -88,7 +90,7 @@ ohos_unittest("UtilsParcelTest") {
 }
 
 ##############################unittest##########################################
-if (!is_host_product) {
+if (!use_linux && !is_host_product) {
   ohos_unittest("UtilsAshmemTest") {
     module_out_path = module_output_path
     sources = [ "utils_ashmem_test.cpp" ]

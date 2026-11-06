@@ -12,6 +12,8 @@
 # limitations under the License.
 import("//build/test.gni")
 
+use_linux = "${current_os}_${current_cpu}" == "linux_arm64"
+
 ##############################group##########################################
 group("fuzztest") {
   testonly = true
@@ -25,7 +27,7 @@ group("fuzztest") {
     "thread_fuzzer:ThreadFuzzTest",
     "timer_fuzzer:TimerFuzzTest",
   ]
-  if (!is_host_product) {
+  if (!use_linux && !is_host_product) {
     deps += [ "ashmem_fuzzer:AshmemFuzzTest" ]
   }
 }
