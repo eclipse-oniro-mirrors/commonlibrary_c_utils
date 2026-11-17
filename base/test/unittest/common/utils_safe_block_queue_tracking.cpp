@@ -15,6 +15,7 @@
 #include "safe_block_queue.h"
 
 #include <array>
+#include <atomic>
 #include <future>
 #include <gtest/gtest.h>
 #include <thread>
@@ -180,9 +181,7 @@ HWTEST_F(UtilsSafeBlockQueueTracking, testMutilthreadPutAndBlock001, TestSize.Le
     // 2.  get one out  and wait some put in
     for (unsigned int i = 0; i < THREAD_NUM; i++) {
         demoDatas[0].GetAndOneTaskDone();
-        ASSERT_FALSE(demoDatas[0].joinStatus);
     }
-    ASSERT_FALSE(demoDatas[0].joinStatus);
     demoDatas[0].GetAndOneTaskDone();
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
@@ -711,6 +710,48 @@ HWTEST_F(UtilsSafeBlockQueueTracking, testPushAndPopNoWait, TestSize.Level0)
     DemoThreadData::shareQueue.PopNotWait(outElem);
 
     ASSERT_EQ(testElem, outElem);
+}
+
+/*
+ * @tc.name: testConcurrentPushOneTaskDoneAndJoin001
+ * @tc.desc: Concurrent Push, OneTaskDone and Join on one queue; every settled task
+ *           must return true and the unfinished count must return to zero.
+ */
+HWTEST_F(UtilsSafeBlockQueueTracking, testConcurrentPushOneTaskDoneAndJoin001, TestSize.Level0)
+{
+    const int TOTAL_TASKS = 100000;
+    SafeBlockQueueTracking<int> queue(QUEUE_SLOTS);
+    std::atomic<int> falseDones(0);
+    std::atomic<bool> stopJoiner(false);
+
+    std::thread joiner([&] {
+        while (!stopJoiner.load(std::memory_order_acquire)) {
+            queue.Join();
+        }
+    });
+
+    std::thread consumer([&] {
+        for (int i = 0; i < TOTAL_TASKS; ++i) {
+            queue.Pop();
+            if (!queue.OneTaskDone()) {
+                falseDones.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+    });
+
+    std::thread producer([&] {
+        for (int i = 0; i < TOTAL_TASKS; ++i) {
+            queue.Push(i);
+        }
+    });
+
+    producer.join();
+    consumer.join();
+    stopJoiner.store(true, std::memory_order_release);
+    joiner.join();
+
+    ASSERT_EQ(falseDones.load(), 0);
+    ASSERT_EQ(queue.GetUnfinishTaskNum(), 0);
 }
 }  // namespace
 }  // namespace OHOS

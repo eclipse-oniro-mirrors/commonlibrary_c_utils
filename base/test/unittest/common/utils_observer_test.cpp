@@ -15,8 +15,12 @@
 #include <gtest/gtest.h>
 #include "observer.h"
 #include <algorithm>
+#include <atomic>
 #include <iostream>
 #include <fstream>
+#include <memory>
+#include <thread>
+#include <vector>
 using namespace testing::ext;
 using namespace std;
 
@@ -161,6 +165,88 @@ HWTEST_F(UtilsObserverTest, test_RemoveAllObserver, TestSize.Level0)
     EXPECT_EQ(bookObserver2->GetBooksCount(), 1);
     EXPECT_EQ(bookObserver3->GetBooksCount(), 1);
     EXPECT_EQ(bookList.GetObserversCount(), 0);
+}
+
+class ConcurrentObservable : public Observable {
+public:
+    void MarkChanged()
+    {
+        SetChanged();
+    }
+
+    void UnmarkChanged()
+    {
+        ClearChanged();
+    }
+
+    bool IsMarked()
+    {
+        return HasChanged();
+    }
+};
+
+class ConcurrentObserver : public Observer {
+public:
+    virtual void Update(const Observable* /*o*/, const ObserverArg* /*arg*/)
+    {
+        count_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    std::atomic<int> count_ { 0 };
+};
+
+/*
+ * @tc.name: test_ObserverConcurrentNotify
+ * @tc.desc: Concurrent flag operations, observer churn and notifications on one
+ *           observable must not deadlock and must keep the merge semantics intact.
+ */
+HWTEST_F(UtilsObserverTest, test_ObserverConcurrentNotify, TestSize.Level0)
+{
+    const int ITERS = 20000;
+    ConcurrentObservable subject;
+    auto keep = std::make_shared<ConcurrentObserver>();
+    auto churn = std::make_shared<ConcurrentObserver>();
+    subject.AddObserver(keep);
+
+    std::vector<std::thread> threads;
+    threads.emplace_back([&] {
+        for (int i = 0; i < ITERS; ++i) {
+            subject.MarkChanged();
+            subject.NotifyObservers(nullptr);
+        }
+    });
+    threads.emplace_back([&] {
+        for (int i = 0; i < ITERS; ++i) {
+            subject.UnmarkChanged();
+            subject.IsMarked();
+        }
+    });
+    threads.emplace_back([&] {
+        for (int i = 0; i < ITERS; ++i) {
+            subject.AddObserver(churn);
+            subject.RemoveObserver(churn);
+        }
+    });
+    threads.emplace_back([&] {
+        for (int i = 0; i < ITERS; ++i) {
+            subject.NotifyObservers(nullptr);
+        }
+    });
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_GT(keep->count_.load(), 0);
+
+    subject.RemoveAllObservers();
+    auto fresh = std::make_shared<ConcurrentObserver>();
+    subject.AddObserver(fresh);
+    subject.MarkChanged();
+    subject.NotifyObservers(nullptr);
+    ASSERT_EQ(fresh->count_.load(), 1);
+    subject.NotifyObservers(nullptr);
+    ASSERT_EQ(fresh->count_.load(), 1);
 }
 }  // namespace
 }  // namespace OHOS

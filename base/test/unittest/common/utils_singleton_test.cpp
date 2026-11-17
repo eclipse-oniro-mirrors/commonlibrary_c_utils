@@ -15,8 +15,13 @@
 #include <gtest/gtest.h>
 #include "singleton.h"
 #include <algorithm>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include <vector>
 using namespace testing::ext;
 using namespace std;
 
@@ -171,6 +176,82 @@ HWTEST_F(UtilsSingletonTest, test_DelayedRefSingletonDeclearTest, TestSize.Level
     DelayedRefSingletonDeclearTest& p1 = DelayedRefSingleton<DelayedRefSingletonDeclearTest>::GetInstance();
     DelayedRefSingletonDeclearTest& p2 = DelayedRefSingleton<DelayedRefSingletonDeclearTest>::GetInstance();
     EXPECT_EQ(p1.GetObjAddr(), p2.GetObjAddr());
+}
+
+class DelayedRefSingletonConcurrentInitTest
+    : public DelayedRefSingleton<DelayedRefSingletonConcurrentInitTest> {
+public:
+    DelayedRefSingletonConcurrentInitTest()
+    {
+        for (int round = 0; round < CTOR_ROUNDS; ++round) {
+            for (int j = 0; j < PAYLOAD_SIZE; ++j) {
+                payload[j] = j + 1;
+            }
+        }
+        ctorCalls_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    static constexpr int PAYLOAD_SIZE = 64;
+    static constexpr int CTOR_ROUNDS = 10000;
+    static std::atomic<int> ctorCalls_;
+    int payload[PAYLOAD_SIZE];
+};
+
+std::atomic<int> DelayedRefSingletonConcurrentInitTest::ctorCalls_(0);
+
+/*
+ * @tc.name: test_DelayedRefSingletonConcurrentInit
+ * @tc.desc: Concurrent first calls of GetInstance construct exactly one instance,
+ *           return the same address and expose fully initialized members.
+ */
+HWTEST_F(UtilsSingletonTest, test_DelayedRefSingletonConcurrentInit, TestSize.Level0)
+{
+    const int THREAD_NUM = 8;
+    DelayedRefSingletonConcurrentInitTest* results[THREAD_NUM] = {};
+    bool intact[THREAD_NUM] = {};
+    std::mutex gateMutex;
+    std::condition_variable gateCv;
+    int ready = 0;
+    bool start = false;
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < THREAD_NUM; ++t) {
+        threads.emplace_back([&, t] {
+            {
+                std::unique_lock<std::mutex> lock(gateMutex);
+                ++ready;
+                gateCv.notify_all();
+                gateCv.wait(lock, [&start] { return start; });
+            }
+            DelayedRefSingletonConcurrentInitTest* ptr =
+                &DelayedRefSingletonConcurrentInitTest::GetInstance();
+            bool ok = true;
+            for (int j = 0; j < DelayedRefSingletonConcurrentInitTest::PAYLOAD_SIZE; ++j) {
+                ok = ok && (ptr->payload[j] == j + 1);
+            }
+            results[t] = ptr;
+            intact[t] = ok;
+        });
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(gateMutex);
+        gateCv.wait(lock, [&] { return ready == THREAD_NUM; });
+        start = true;
+        gateCv.notify_all();
+    }
+
+    for (auto& thd : threads) {
+        thd.join();
+    }
+
+    ASSERT_EQ(DelayedRefSingletonConcurrentInitTest::ctorCalls_.load(), 1);
+    for (int t = 1; t < THREAD_NUM; ++t) {
+        ASSERT_EQ(results[t], results[0]);
+    }
+    for (int t = 0; t < THREAD_NUM; ++t) {
+        ASSERT_TRUE(intact[t]);
+    }
 }
 }  // namespace
 }  // namespace OHOS
