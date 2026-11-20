@@ -47,6 +47,7 @@ void Observable::RemoveAllObservers()
 
 bool Observable::HasChanged()
 {
+    lock_guard<mutex> lock(mutex_);
     return changed_;
 }
 
@@ -71,7 +72,7 @@ void Observable::NotifyObservers(const ObserverArg* arg)
         }
 
         arrLocal = obs;
-        ClearChanged();
+        changed_ = false;
     }
 
     for (auto& o : arrLocal) {
@@ -81,11 +82,13 @@ void Observable::NotifyObservers(const ObserverArg* arg)
 
 void Observable::SetChanged()
 {
+    lock_guard<mutex> lock(mutex_);
     changed_ = true;
 }
 
 void Observable::ClearChanged()
 {
+    lock_guard<mutex> lock(mutex_);
     changed_ = false;
 }
 

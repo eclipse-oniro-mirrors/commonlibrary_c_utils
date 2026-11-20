@@ -191,8 +191,8 @@ public:
  */
     virtual void Push(T const& elem)
     {
-        unfinishedTaskCount_++;
         std::unique_lock<std::mutex> lock(mutexLock_);
+        unfinishedTaskCount_++;
         while (queueT_.size() >= maxSize_) {
             // If the queue is full, wait for jobs to be taken.
             cvNotFull_.wait(lock, [&]() { return (queueT_.size() < maxSize_); });

@@ -166,12 +166,12 @@ public:
     static T& GetInstance();
 
 private:
-    static T* instance_; // Record the DelayedRefSingleton instance created.
+    static std::atomic<T*> instance_; // Record the DelayedRefSingleton instance created.
     static std::mutex mutex_;
 };
 
 template<typename T>
-T* DelayedRefSingleton<T>::instance_ = nullptr;
+std::atomic<T*> DelayedRefSingleton<T>::instance_ = nullptr;
 
 template<typename T>
 std::mutex DelayedRefSingleton<T>::mutex_;
@@ -179,14 +179,17 @@ std::mutex DelayedRefSingleton<T>::mutex_;
 template<typename T>
 T& DelayedRefSingleton<T>::GetInstance()
 {
-    if (instance_ == nullptr) {
+    T* ptr = instance_.load(std::memory_order_acquire);
+    if (ptr == nullptr) {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (instance_ == nullptr) {
-            instance_ = new T();
+        ptr = instance_.load(std::memory_order_relaxed);
+        if (ptr == nullptr) {
+            ptr = new T();
+            instance_.store(ptr, std::memory_order_release);
         }
     }
 
-    return *instance_;
+    return *ptr;
 }
 
 /**
