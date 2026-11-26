@@ -1,3 +1,5 @@
+使用agent修改代码，新增代码结构/功能特性必须同步更新本AGENTS
+
 # AGENTS.md — base/src/rust/（Rust 实现，CXX 桥接）
 
 动手前先读根目录 `AGENTS.md`；本目录经 `rust_cxx` 桥接为 C++ 提供实现，编译产物为 `utils_rust`。
