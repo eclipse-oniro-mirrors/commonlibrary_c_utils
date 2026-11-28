@@ -1,3 +1,5 @@
+使用agent修改代码，新增代码结构/功能特性必须同步更新本AGENTS
+
 # AGENTS.md — base/test/（测试树）
 
 动手前先读根目录 `AGENTS.md`；本文件覆盖 unittest / benchmarktest / fuzztest 全部子目录。
@@ -6,7 +8,7 @@
 
 | 目录 | 内容 | 注册 |
 |---|---|---|
-| unittest/common/ | 23 个 `utils_*_test.cpp`（gtest） | 同目录 BUILD.gn：`ohos_unittest("UtilsXxxTest")` **且**加入 `group("unittest")` 的 deps |
+| unittest/common/ | 22 个 `utils_*_test.cpp`（gtest） | 同目录 BUILD.gn：`ohos_unittest("UtilsXxxTest")` **且**加入 `group("unittest")` 的 deps |
 | unittest/rust/ | `rust_utils_{ashmem,directory,file}_test.rs` | 同目录 BUILD.gn（仅 linux host、非 asan/arkui_x、含 thirdparty_rust_cxx 部件时编入） |
 | benchmarktest/ | 21 个基准子目录（benchmark） | 各子目录 BUILD.gn |
 | fuzztest/ | 7 个 fuzzer（refbase/directory/timer/parcel/ashmem/thread/string） | 各子目录 BUILD.gn + project.xml + corpus/init |

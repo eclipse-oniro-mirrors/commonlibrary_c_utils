@@ -1,3 +1,5 @@
+使用agent修改代码，新增代码结构/功能特性必须同步更新本AGENTS
+
 # AGENTS.md — base/include/（对外 API 头文件）
 
 本目录是 c_utils 的**兼容性红线区**。动手前先读根目录 `AGENTS.md`（约束边界、知识路由、验证闭环），再按本文件执行。
